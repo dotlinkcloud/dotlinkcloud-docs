@@ -31,12 +31,15 @@
 1.1 `dlinkmq_device_info` 结构定义如下：
 
 ```
-typedef struct 
+#define DlinkMQ_product_id_len 40
+#define DlinkMQ_product_secret_len 40
+#define DlinkMQ_device_id_len 40
+typedef struct
 {
-    we_unit8	*product_id; 		
-    we_unit8	*product_secret; 
-    we_unit8	*device_id; 
-} dlinkmq_device_info; 
+    we_int8	product_id[DlinkMQ_product_id_len];
+    we_int8	product_secret[DlinkMQ_product_secret_len];
+    we_int8	device_id[DlinkMQ_device_id_len];
+} dlinkmq_device_info;
 
 ```
 参数含义如下：
@@ -54,13 +57,14 @@ device_id | 设备ID：每个设备的唯一标识。
 ```
 typedef struct
 {
-    we_unit8   version;
-    we_unit32  cmd_id;          	
-    we_unit8	 *cmd_value;         
-    we_unit32  cmd_value_len;      
-    we_unit32  seq;                  
-    we_int32   ret_code;     	     
-} dlinkmq_datapoint; 
+    we_int8    version[20];
+    we_uint32   cmd_id;
+    we_uint16   msg_id;
+    we_int8    *cmd_value;
+    we_uint32   cmd_value_len;
+    we_uint32   seq;
+    we_int32    ret_code;
+} dlinkmq_datapoint;
 
 ```
 参数含义如下：
@@ -75,22 +79,39 @@ seq | 操作序号
 ret_code | 回复结果：如果需要回复，回复设备的处理结果给云端。
 
 ### 3. 接收数据点回调
-`typedef void (*on_receive_datapoint)(dlinkmq_datapoint *datapoint);`
+
+3.1`dlinkmq_on_receive ` 结构定义如下：
+
+```
+typedef struct
+{
+    void (*on_receive_datapoint)(dlinkmq_datapoint *datapoint);
+} dlinkmq_on_receive;
+```
 
 参数含义如下：
 
 名称|作用
 ---|---
+on_receive_datapoint | 接收数据点回调
 datapoint | 数据点结构
 
 ### 4. 发送数据点回调
 
-`typedef void (*on_send_msg)(we_int32 err_code, we_int32 msg_id);`
+4.1`dlinkmq_on_send ` 结构定义如下：
+
+```
+typedef struct
+{
+    void (*on_send_msg)(we_int32 err_code, dlinkmq_datapoint *datapoint);
+} dlinkmq_on_send;
+```
 
 参数含义如下：
 
 名称|作用
 ---|---
+on_send_msg | 发送数据点回调
 err_code | 0:成功，1:失败
 msg_id | 调用发送函数时传入，用于标记消息
 
@@ -99,11 +120,11 @@ msg_id | 调用发送函数时传入，用于标记消息
 定义
 
 ```
-we_int32 dlinkmq_init_device_info(dlinkmq_device_info *info)
+we_int32 dlinkmq_init_device_info(dlinkmq_device_info *device_info, dlinkmq_on_receive fun_cb);
 ```
 说明
  
- 设备初始化，创建TCP服务与云端建立连接。
+ 设备初始化，创建TCP服务与云端建立连接获取和MQTT连接所需的信息。
 
 参数
 
@@ -115,51 +136,53 @@ info | 设备信息
 
 返回值|含义
 ---|---
-WE_SUCCESS | 成功
-WE_ERROR | 失败
+DlinkMQ_ERROR_CODE_SUCCESS | 成功
+其他 | 失败
 
-### 2. 数据点初始化
+### 2. 主循环函数
 
 定义
 
 ```
-void dlinkmq_init_datapoint(on_receive_cc_datapoint fun_cb)
+void dlinkmq_run();
 ```
 说明
  
- 设置接收数据点的回调函数
-
-参数
-
-字段|说明
----|---
-fun_cb | 回调函数
-
+ 初始化成功后，设备与MQTT服务器的连接、接收消息都在这里面完成。
 
 ### 3. 发送消息
 
 定义
 
 ```
-we_int32 dlinkmq_send_datapoint(dlinkmq_datapoint datapoints[], we_unit32 datapoints_count, on_send_msg fun_cb, we_uint32 msg_id)
+we_int32 dlinkmq_publish(dlinkmq_datapoint *datapoint, we_int8 *topic, we_int32 qos, dlinkmq_on_send fun_cb);
 ```
 说明
  
- 设备上报数据点
+ 设备上报、回复数据点
 
 参数
 
 字段|说明
 ---|---
-datapoints[] | 数据点数组，多个datapoint消息打包到一条消息里面发送
-datapoints_count | datapoint的个数
+datapoint | 数据点消息
+topic | 发送消息的频道
+qos | 消息发布服务质量. 0：“至多一次”，1：“至少一次”，2：“只有一次”
 fun_cb | 发送是否成功的回调函数
-msg_id | 用于标记该消息，会在回调函数（fun_cb）中返回
 
 返回
 
 返回值|含义
 ---|---
-WE_SUCCESS | 成功
-WE_ERROR | 失败
+DlinkMQ_ERROR_CODE_SUCCESS | 成功
+其他 | 失败
 
+## 状态码
+
+状态码|含义
+---|---
+DlinkMQ_ERROR_CODE_SUCCESS | 成功
+DlinkMQ_ERROR_CODE_PARAM | 参数错误
+DlinkMQ_ERROR_CODE_SOC_CREAT | 创建网络失败
+DlinkMQ_ERROR_CODE_SOC_CONN | 网络连接失败
+DlinkMQ_ERROR_CODE_DATA | 数据异常
