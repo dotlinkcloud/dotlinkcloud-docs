@@ -52,7 +52,7 @@ device_id | 设备ID：每个设备的唯一标识。
 
 ### 2. 数据点消息
 
-2.1 `dlinkmq_datapoint_head` 消息头结构定义如下：
+2.1 `dlinkmq_datapoint` 消息头结构定义如下：
 
 ```
 typedef struct
@@ -80,7 +80,7 @@ ret_code | 回复结果：如果需要回复，回复设备的处理结果给云
 
 ### 3. 接收数据点回调
 
-3.1`dlinkmq_on_receive ` 结构定义如下：
+3.1`dlinkmq_on_receive` 结构定义如下：
 
 ```
 typedef struct
@@ -112,8 +112,9 @@ typedef struct
 名称|作用
 ---|---
 on_send_msg | 发送数据点回调
-err_code | 0:成功，1:失败
+err_code | 0:成功，其他:失败
 msg_id | 调用发送函数时传入，用于标记消息
+datapoint | 数据点结构
 
 ## 接口定义
 ### 1. 设备初始化
@@ -130,7 +131,8 @@ we_int32 dlinkmq_init_device_info(dlinkmq_device_info *device_info, dlinkmq_on_r
 
 字段|说明
 ---|---
-info | 设备信息
+device_info | 设备信息
+fun_cb | 接收数据点回调
 
 返回
 
