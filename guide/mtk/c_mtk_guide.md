@@ -28,7 +28,12 @@ ifdef USE_MQTT_TASK_SERVERifeq ($(strip $(USE_MQTT_TASK_SERVER)),TRUE)   COM_D
 #ifdef __USE_MQTT_TASK_SERVER__task_index(INDX_MQTT)  /*module_type and mod_task_g*/task_module_map(INDX_MQTT, MOD_MQTT)/*task's parameters*/task_name("MQTT")task_queue_name("MQTT Q")task_priority(TASK_PRIORITY_MQTT)task_stack_size(2048)task_create_function(mqtt_create)task_stack_internalRAM(KAL_FALSE)task_external_queue_size(10)task_internal_queue_size(0)task_boot_mode(NORMAL_M)#endif
 ```
 
-### 3. 放置mqtttask目录到plutommi目录下
+### 3.添加mqtt_sap.h到user_msgid_app.h
+```
+#ifdef KAL_MSGID_EXPANSION    #include "mqtt_sap.h"      MSG_ID_NAME(MQTT)#else    MODULE_MSGID_RANGE(MQTT, 10)#endif
+```
+
+### 4. 放置mqtttask目录到plutommi目录下
   * mqtttask.c是task的入口
 
 ## 云端通信
